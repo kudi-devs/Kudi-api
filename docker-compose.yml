@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+
+  db_mysql:
+    container_name: mysql
+    image: mysql:5.7
+    restart: always
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+    ports:
+      - '3307:3306'
+    expose:
+      - '3306'
+    volumes:
+      - mysql_db:/var/lib/mysql
+
+  redis:
+    container_name: redis
+    image: redis:6-alpine
+    volumes:
+      - redis_volume:/data
+    ports:
+      - 6379:6379
+    expose:
+      - '6379'
+
+  adonis_app:
+    container_name: adonis_app
+    restart: always
+    depends_on:
+      - db_mysql
+      - redis
+    build:
+      context: .
+      target: dependencies
+    ports:
+      - ${PORT}:${PORT}
+      - 9229:9229
+    expose:
+      - '8989'
+    env_file:
+      - .env
+    environment:
+      - DB_HOST=mysql
+      - REDIS_HOST=redis
+    volumes:
+      - ./:/home/node/app
+    command: dumb-init node ace serve --watch --node-args="--inspect=0.0.0.0"
+
+volumes:
+
+  mysql_db:
+  redis_volume:
